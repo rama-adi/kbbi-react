@@ -13,7 +13,7 @@ import {XIcon, ClipboardCopyIcon, CheckIcon} from '@heroicons/react/solid';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 
-const KBBI_VER = "4300 / 2008";
+const KBBI_VER = "4 / 2008";
 
 interface dictionaryFormat {
     w: string,
