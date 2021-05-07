@@ -8,7 +8,7 @@ interface props {
 export default function NoResults(props: props) {
     return (
         <>
-            {props.searched === null || props.searched === false &&
+            {(props.searched === null || props.searched) === false &&
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4">
                 <div className="flex">
                     <div className="flex-shrink-0">

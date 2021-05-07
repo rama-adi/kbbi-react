@@ -1,17 +1,19 @@
 import React, {useState, Fragment, useEffect} from 'react';
+import LZUTF8 from "lzutf8";
 import LoadingDictionary from "./Components/LoadingDictionary";
 import OctoFork from "./Components/OctoFork";
 import NoResults from "./Components/NoResults";
 import ResultAmount from "./Components/ResultAmount";
+import axios from "axios";
+import {Transition, Switch} from '@headlessui/react';
+import {CheckCircleIcon, SearchIcon} from '@heroicons/react/outline';
+import {XIcon, ClipboardCopyIcon, CheckIcon} from '@heroicons/react/solid';
 
-import {Transition, Switch} from '@headlessui/react'
-import {CheckCircleIcon, SearchIcon} from '@heroicons/react/outline'
-import {XIcon, ClipboardCopyIcon, CheckIcon} from '@heroicons/react/solid'
 // @ts-ignore
 import {CopyToClipboard} from 'react-copy-to-clipboard';
-import axios from "axios";
 
-const KBBI_VER = "4 / 2008";
+
+const KBBI_VER = "4300 / 2008";
 
 interface dictionaryFormat {
     w: string,
@@ -42,16 +44,32 @@ function App() {
         const kbbiRevStorage = localStorage.getItem('KBBI-REV');
         const kbbiStorage = localStorage.getItem('KBBI-DICT');
 
-        if(kbbiRevStorage === null || kbbiRevStorage !== KBBI_VER){
-            console.log('Dictionary mismatch / missing on LocalStorage, downloading now...');
-        }else{
-            console.log('Downloading from local cache...');
-        }
-        axios.get('kbbi.json').then((res) => {
-            setDictionaryLoaded(true);
-            setDictionary(res.data);
-        });
+        if (kbbiRevStorage === null || kbbiRevStorage !== KBBI_VER || localStorage.getItem('KBBI-CACHED') !== "Y") {
+            console.log('Dictionary mismatch / missing on LocalStorage, invalidating and redownloading dictionary now...');
+            localStorage.removeItem('KBBI-DICT');
+            const LS_SIZE = 1024 * 1024 * 5 - unescape(encodeURIComponent(JSON.stringify(localStorage))).length;
 
+            axios.get('kbbi.json').then((res) => {
+                if (LS_SIZE > 4500000) {
+                    localStorage.setItem('KBBI-DICT', LZUTF8.compress(JSON.stringify(res.data), {outputEncoding: "StorageBinaryString"}));
+                    localStorage.setItem('KBBI-REV', KBBI_VER);
+                    localStorage.setItem('KBBI-CACHED', 'Y');
+                }else{
+                    console.log('Insufficient storage, dictionary will not be cached!');
+                }
+
+                setDictionaryLoaded(true);
+                setDictionary(res.data);
+            });
+        } else {
+            console.log('Downloading from local cache...');
+            setDictionary(
+                JSON.parse(
+                    LZUTF8.decompress(kbbiStorage, {inputEncoding: "StorageBinaryString"})
+                )
+            );
+            setDictionaryLoaded(true);
+        }
     }, []);
 
 
