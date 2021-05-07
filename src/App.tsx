@@ -1,14 +1,14 @@
 import React, {useState, Fragment, useEffect} from 'react';
-import LZUTF8 from "lzutf8";
 import LoadingDictionary from "./Components/LoadingDictionary";
 import OctoFork from "./Components/OctoFork";
 import NoResults from "./Components/NoResults";
 import ResultAmount from "./Components/ResultAmount";
-import axios from "axios";
 import {Transition, Switch} from '@headlessui/react';
 import {CheckCircleIcon, SearchIcon} from '@heroicons/react/outline';
 import {XIcon, ClipboardCopyIcon, CheckIcon} from '@heroicons/react/solid';
-
+import { doCacheRoutine } from "./Lib/DictionaryCacheManager";
+import useCookie from 'react-use-cookie';
+import DevToolbox from "./Components/DevToolbox"
 // @ts-ignore
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 
@@ -33,7 +33,7 @@ function filterItems(arr: any, query: string) {
 function App() {
     const [dictionary, setDictionary] = useState([]);
     const [dictionaryLoaded, setDictionaryLoaded] = useState(false);
-
+    const [devmode] = useCookie('KBBI_DEVMODE', 'false');
     const [search, setSearch] = useState("");
     const [copied, setCopied] = useState(false);
     const [copiedNum, setCopiedNum] = useState<any>(null);
@@ -41,35 +41,7 @@ function App() {
     const [results, setResults] = useState([]);
 
     useEffect(() => {
-        const kbbiRevStorage = localStorage.getItem('KBBI-REV');
-        const kbbiStorage = localStorage.getItem('KBBI-DICT');
-
-        if (kbbiRevStorage === null || kbbiRevStorage !== KBBI_VER || localStorage.getItem('KBBI-CACHED') !== "Y") {
-            console.log('Dictionary mismatch / missing on LocalStorage, invalidating and redownloading dictionary now...');
-            localStorage.removeItem('KBBI-DICT');
-            const LS_SIZE = 1024 * 1024 * 5 - unescape(encodeURIComponent(JSON.stringify(localStorage))).length;
-
-            axios.get('kbbi.json').then((res) => {
-                if (LS_SIZE > 4500000) {
-                    localStorage.setItem('KBBI-DICT', LZUTF8.compress(JSON.stringify(res.data), {outputEncoding: "StorageBinaryString"}));
-                    localStorage.setItem('KBBI-REV', KBBI_VER);
-                    localStorage.setItem('KBBI-CACHED', 'Y');
-                }else{
-                    console.log('Insufficient storage, dictionary will not be cached!');
-                }
-
-                setDictionaryLoaded(true);
-                setDictionary(res.data);
-            });
-        } else {
-            console.log('Downloading from local cache...');
-            setDictionary(
-                JSON.parse(
-                    LZUTF8.decompress(kbbiStorage, {inputEncoding: "StorageBinaryString"})
-                )
-            );
-            setDictionaryLoaded(true);
-        }
+        doCacheRoutine(KBBI_VER, setDictionaryLoaded, setDictionary);
     }, []);
 
 
@@ -142,7 +114,7 @@ function App() {
                 </div>
 
                 <div className="flex justify-center">
-                    <div className="max-w-7xl w-full mt-4">
+                    <div className="max-w-7xl w-full mt-4 sm:mx-4">
                         <div className="bg-white shadow sm:rounded-lg">
                             <div className="px-4 py-5 sm:p-6">
                                 <h3 className="text-lg leading-6 font-medium text-gray-900">Instant KBBI Dictionary</h3>
@@ -228,9 +200,14 @@ function App() {
                                         />
                                     </Switch>
                                 </Switch.Group>
-
                             </div>
                         </div>
+
+                        {devmode === "true" &&
+                        <div className="my-4">
+                            <DevToolbox />
+                        </div>
+                        }
 
                         <div className="mt-4">
                             <p>
@@ -249,10 +226,9 @@ function App() {
                             </div>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 {results.map((i: any, index: number) => (
-                                    <CopyToClipboard text={i.w}
+                                    <CopyToClipboard key={index} text={i.w}
                                                      onCopy={() => doCopy(index)}>
                                         <div
-                                            key={index}
                                             className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                                         >
                                             <div

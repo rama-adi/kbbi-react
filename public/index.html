@@ -39,6 +39,14 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-
+    <script>
+      window.kbbiEnableDevMode = function () {
+        let date = new Date();
+        date.setTime(date.getTime() + (100 * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = "KBBI_DEVMODE=true; " + expires + "; path=/";
+        window.location.reload();
+      }
+    </script>
   </body>
 </html>
